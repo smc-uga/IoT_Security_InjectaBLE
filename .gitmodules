@@ -1,0 +1,3 @@
+[submodule "attacker"]
+	path = attacker
+	url = https://github.com/RCayre/injectable-firmware
