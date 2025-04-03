@@ -16,7 +16,7 @@ BLE Version: v5.2 or earlier
 > Instructions Here: https://docs.zephyrproject.org/latest/develop/getting_started/index.html
 
     Insert in ~/.bashrc: export ZEPHYR_BASE="<path_to_zephyrproject>"
-    Example: export ZEPHYR_BASE="$HOME/school/Spring_2025/IoT_Security/research/zephyr_prj"
+    Example: export ZEPHYR_BASE="$HOME/school/Spring_2025/IoT_Security/research/zephyrproject/zephyr"
 
 ------
 
@@ -25,8 +25,9 @@ BLE Version: v5.2 or earlier
 
   > GAP (Generic Access Profile)
 
-    a. Advertise Presence
-    b. Establish Connection with Master
+    a. (DONE) Advertise Presence
+    b. (DONE) Establish Connection with Master
+        - But fix it to handle disconnect / reconnect
 
   > GATT (Generic Attribute Profile)
 

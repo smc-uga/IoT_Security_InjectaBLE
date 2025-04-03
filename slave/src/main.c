@@ -6,41 +6,28 @@ LOG_MODULE_REGISTER(ble_slave, LOG_LEVEL_INF);
 // GAP (Generic Access Profile)
 // Required to setup and manage Bluetooth connections
 #include <zephyr/bluetooth/bluetooth.h>
-
-// #include <zephyr/bluetooth/hci.h>
-// #include <zephyr/bluetooth/conn.h>
-// #include <zephyr/bluetooth/uuid.h>
+#include <zephyr/bluetooth/conn.h>
+#include <zephyr/bluetooth/hci.h>
 
 // Possibly needed in the future to facilitate data passing
 // #include <zephyr/bluetooth/gatt.h>
 
-void bt_enable_cb(int err) {
-  if (err == 0) {
-    LOG_INF("Bluetooth Enabled");
-  } else {
-    LOG_ERR("Bluetooth Not Enabled");
-  }
-}
-
-int init_ble(void) {
-  LOG_INF("Initializing BLE");
-  bt_ready_cb_t cb = bt_enable_cb;
-  return bt_enable(cb);
-}
-
-int start_ble_adv(int duration_s) {
+/************************************/
+/***** Start BLE Advertisement ******/
+/************************************/
+int start_ble(void) {
 
   uint8_t uuid[] = {0xFF, 0xBC}; // 16-bit UUID
-  const char *device_name = "Sean's Device";
+  const char *scan_name = "Slave";
 
   const struct bt_data ad[] = {
       BT_DATA(BT_DATA_UUID16_SOME, uuid, sizeof(uuid)),
   };
   const struct bt_data sd[] = {
-      BT_DATA(BT_DATA_NAME_COMPLETE, device_name, strlen(device_name)),
+      BT_DATA(BT_DATA_NAME_COMPLETE, scan_name, strlen(scan_name)),
   };
 
-  // Start Bluetooth Low Energy Advertisement
+  // Do BLE Advertisement until Connection is Established, then stop
   int err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd,
                             ARRAY_SIZE(sd));
   if (err) {
@@ -51,33 +38,49 @@ int start_ble_adv(int duration_s) {
   return 0;
 }
 
+/************************************/
+/******* CONNECTION callbacks *******/
+/************************************/
+static void connected(struct bt_conn *conn, uint8_t err) {
+  if (err) {
+    printk("Connection failed, err 0x%02x %s\n", err, bt_hci_err_to_str(err));
+  } else {
+    printk("Connected\n");
+  }
+}
+
+static void disconnected(struct bt_conn *conn, uint8_t reason) {
+  printk("Disconnected, reason 0x%02x %s\n", reason, bt_hci_err_to_str(reason));
+}
+
+// Setup connection callbacks
+BT_CONN_CB_DEFINE(conn_callbacks) = {
+    .connected = connected,
+    .disconnected = disconnected,
+};
+
+/************************************/
+/******* Main APP Entry Point *******/
+/************************************/
 int main(void) {
-  int err = init_ble();
+
+  // BLE init
+  int err = bt_enable(NULL);
   if (err) {
     LOG_ERR("Bluetooth Failed to Initialized");
     return err;
   }
-  LOG_INF("Ready to Start Bluetooth");
+  LOG_INF("Bluetooth Initialized");
 
-  err = start_ble_adv(30);
+  // BLE Advertise (stops advertising on connection)
+  err = start_ble();
+  if (err) {
+    LOG_ERR("Failed to Start BLE");
+    return err;
+  }
 
-  // How do I set the advertisment duration?
-  //	Also, it would be solid to be able to re-advertise.
-  // How do I connect two devices?
-  // What threads are running?
-  //	main
-  //	ble host? (idk)
-  //	ble controller? (idk)
-  //
-  // How do I tell main to sleep until woken up on trigger?
-  //	Probably wakeup when device is found & trying to connect
-  //	State Machine:
-  //		STATE_SLEEP // wakeup on trigger
-  //		STATE_WAKE  // handle device connection stuff
-
-  LOG_INF("Main Sleeping...");
-  k_sleep(K_SECONDS(30));
-  LOG_INF("Main Exiting...");
-
+  // Main Thread Sleep... no exit
+  LOG_INF("Main Sleeping Forever...");
+  k_sleep(K_FOREVER);
   return 0;
 }
