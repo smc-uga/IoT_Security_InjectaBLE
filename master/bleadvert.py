@@ -1,4 +1,4 @@
-#pip install bleak for Windows
+#pip install bleak for Windows system
 
 import asyncio
 from bleak import BleakScanner
