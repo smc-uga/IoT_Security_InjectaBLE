@@ -6,4 +6,5 @@ project(slave)
 
 target_sources(app PRIVATE
   src/main.c
+  src/led_svc.c
 )
