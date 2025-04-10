@@ -9,39 +9,17 @@ LOG_MODULE_REGISTER(ble_slave, LOG_LEVEL_INF);
 
 #include "led_svc.h"
 
-int led = 0;
-
 ssize_t recv(struct bt_conn *conn, const struct bt_gatt_attr *attr,
              const void *buf, uint16_t len, uint16_t offset, uint8_t flags) {
 
-  led_update();
-
-  if (led == 0) {
-    LOG_INF("Turn ON led");
-    led = 1;
-  } else {
-    LOG_INF("Turn OFF led");
-    led = 0;
+  if (len <= 0) {
+    LOG_ERR("GATT SERVER FAILED TO RECEIVE ANY BYTES FROM CLIENT");
+    return BT_GATT_ERR(BT_ATT_ERR_INVALID_ATTRIBUTE_LEN);
   }
 
-  return 0;
-}
-
-ssize_t send(struct bt_conn *conn, const struct bt_gatt_attr *attr, void *buf,
-             uint16_t len, uint16_t offset) {
-
-  LOG_INF("READ");
-  led_update();
-
-  if (led == 0) {
-    LOG_INF("Turn ON led");
-    led = 1;
-  } else {
-    LOG_INF("Turn OFF led");
-    led = 0;
-  }
-
-  return 0;
+  uint8_t on_off = ((uint8_t *)buf)[0];
+  led_update((int)on_off);
+  return BT_GATT_ERR(BT_ATT_ERR_SUCCESS);
 }
 
 // iot_svc: defines the high level service
@@ -51,20 +29,18 @@ static const struct bt_uuid_16 led_char_uuid = BT_UUID_INIT_16(0xFFAB);
 
 // iot_svc: Top Level Service that is exposed to Connected Device
 // led_char: Field accessible by connected device (part of exposed service)
-BT_GATT_SERVICE_DEFINE(
-    iot_svc,
+BT_GATT_SERVICE_DEFINE(iot_svc,
 
-    BT_GATT_PRIMARY_SERVICE(&iot_svc_uuid),
+                       BT_GATT_PRIMARY_SERVICE(&iot_svc_uuid),
 
-    BT_GATT_CHARACTERISTIC(&led_char_uuid.uuid,
-                           BT_GATT_CHRC_READ | BT_GATT_CHRC_WRITE_WITHOUT_RESP,
-                           BT_GATT_PERM_WRITE | BT_GATT_PERM_READ, send, recv,
-                           (void *)1));
+                       BT_GATT_CHARACTERISTIC(&led_char_uuid.uuid, 0,
+                                              BT_GATT_PERM_WRITE, NULL, recv,
+                                              (void *)1));
 
 /************************************/
 /***** Start BLE Advertisement ******/
 /************************************/
-int start_ble(void) {
+int advertise(void) {
 
   uint8_t uuid[] = {0xFF, 0xBC}; // 16-bit UUID
   const char *scan_name = "Slave";
@@ -77,14 +53,18 @@ int start_ble(void) {
   };
 
   // Do BLE Advertisement until Connection is Established, then stop
-  int err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd,
-                            ARRAY_SIZE(sd));
+  return bt_le_adv_start(BT_LE_ADV_CONN_FAST_1, ad, ARRAY_SIZE(ad), sd,
+                         ARRAY_SIZE(sd));
+}
+
+int start_ble(void) {
+  int err = advertise();
   if (err) {
     LOG_ERR("Failed to Start Advertising: (err = %d)", err);
-    return err;
+  } else {
+    LOG_INF("Started Advertising!");
   }
-  LOG_INF("Started Advertising!");
-  return 0;
+  return err;
 }
 
 /************************************/
@@ -113,10 +93,22 @@ static void disconnected(struct bt_conn *conn, uint8_t reason) {
   LOG_INF("Disconnected, reason %u %s", reason, bt_hci_err_to_str(reason));
 }
 
+// Catch the disconnection (specifically, the newly free'd connection object)
+static void restart_adv(void) {
+  // Restart advertising
+  int err = advertise();
+  if (err) {
+    LOG_ERR("Failed to restart advertising: err = %d", err);
+  } else {
+    LOG_INF("Re-advertising after disconnect");
+  }
+}
+
 // Setup connection callbacks
 BT_CONN_CB_DEFINE(conn_callbacks) = {
     .connected = connected,
     .disconnected = disconnected,
+    .recycled = restart_adv,
 };
 
 /************************************/

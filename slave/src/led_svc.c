@@ -16,12 +16,12 @@ static bool
     led_state; /* Tracking state here supports GPIO expander-based LEDs. */
 static bool led_ok;
 
-void led_update(void) {
+void led_update(int on_off) {
   if (!led_ok) {
     return;
   }
 
-  led_state = !led_state;
+  led_state = ((on_off == 1) ? true : false);
   LOG_INF("Turn %s LED", led_state ? "on" : "off");
   gpio_pin_set(led.port, led.pin, led_state);
 }

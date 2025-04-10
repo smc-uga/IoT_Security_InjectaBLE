@@ -7,7 +7,7 @@
 #ifndef IOT_LED_SVC_H_
 #define IOT_LED_SVC_H_
 
-void led_update(void);
+void led_update(int on_off);
 int led_init(void);
 
 #endif // IOT_LED_SVC_H_
