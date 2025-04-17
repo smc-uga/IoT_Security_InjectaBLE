@@ -12,6 +12,7 @@ on_off="0000ffab-0000-1000-8000-00805f9b34fb"
 ####################################################################
 async def main():
     async with BleakClient(nRF52840) as client:
+
         print("Connected.")
         while True:
             # Prompt user input in a non-blocking way
