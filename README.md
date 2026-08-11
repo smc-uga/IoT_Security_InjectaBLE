@@ -49,6 +49,9 @@ UPDATE 2:
 Finally, setup double packet detection in the Slave's link layer.
 
 Update 3:
+
   Master  - works
+
   Slave   - works
+
   Attack  - works
