@@ -47,3 +47,8 @@ UPDATE 2:
         > Haven't had time to setup attack mitigation on Slave device yet.
 
 Finally, setup double packet detection in the Slave's link layer.
+
+Update 3:
+  Master  - works
+  Slave   - works
+  Attack  - works
